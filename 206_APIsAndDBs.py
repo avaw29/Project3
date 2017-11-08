@@ -132,7 +132,7 @@ for user in users:
 
 	conn.commit()
 
-cur.close()
+
 ## You should load into the Tweets table:
 # Info about all the tweets (at least 20) that you gather from the
 # umich timeline.
@@ -158,32 +158,49 @@ cur.close()
 # Make a query to select all of the records in the Users database.
 # Save the list of tuples in a variable called users_info.
 
-users_info = True
+users_info = []
+sqlstr = 'SELECT * FROM Users'
+for row in cur.execute(sqlstr):
+	(w, x, y, z) = (str(row[0]), str(row[1]), str(row[2]), str(row[3]))
+	users_info.append((w, x, y, z))
 
 # Make a query to select all of the user screen names from the database.
 # Save a resulting list of strings (NOT tuples, the strings inside them!)
 # in the variable screen_names. HINT: a list comprehension will make
 # this easier to complete!
-screen_names = True
+screen_names = []
+sqlstr = 'SELECT screen_name FROM Users'
+for row in cur.execute(sqlstr):
+	screen_names.append(str(row))
 
 
 # Make a query to select all of the tweets (full rows of tweet information)
 # that have been retweeted more than 10 times. Save the result
 # (a list of tuples, or an empty list) in a variable called retweets.
-retweets = True
-
+retweets = []
+sqlstr = 'SELECT * FROM Tweets WHERE retweets > 10'
+for row in cur.execute(sqlstr):
+	(v, w, x, y, z) = (str(row[0]), str(row[1]), str(row[2]), str(row[3]), str(row[4]))
+	retweets.append((v, w, x, y, z))
 
 # Make a query to select all the descriptions (descriptions only) of
 # the users who have favorited more than 500 tweets. Access all those
 # strings, and save them in a variable called favorites,
 # which should ultimately be a list of strings.
-favorites = True
+favorites = []
+sqlstr = 'SELECT description FROM Users WHERE num_favs > 500'
+for row in cur.execute(sqlstr):
+	favorites.append(str(row))
 
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
 # tweet. Save the resulting list of tuples in a variable called joined_data2.
 joined_data = True
+# sqlstr = 'SELECT Users.screen_name, Tweets.tweet_text FROM Users JOIN Tweets ON Tweets.tweet_text = Users.screen_name'
+# for row in cur.execute(sqlstr):
+# 	(x, y) = (str(row[0], str(row[1])))
+# 	joined_data.append((x, y))
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
@@ -196,6 +213,7 @@ joined_data2 = True
 ### IMPORTANT: MAKE SURE TO CLOSE YOUR DATABASE CONNECTION AT THE END
 ### OF THE FILE HERE SO YOU DO NOT LOCK YOUR DATABASE (it's fixable,
 ### but it's a pain). ###
+cur.close()
 
 ###### TESTS APPEAR BELOW THIS LINE ######
 ###### Note that the tests are necessary to pass, but not sufficient --
