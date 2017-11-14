@@ -51,19 +51,19 @@ CACHE_FNAME = "206_APIsAndDBs_cache.json"
 # Put the rest of your caching setup here:
 
 try:
-	cache_file = open(CACHE_FNAME, "r")
-	cache_contents = cache_file.read()
-	cache_file.close()
-	CACHE_DICTION = json.loads(cache_contents)
+	cache_file = open(CACHE_FNAME, "r")					#try to read file
+	cache_contents = cache_file.read()					#if it's there, read it as a string
+	CACHE_DICTION = json.loads(cache_contents)			#load it as a dictionary
+	cache_file.close()									#close file
 except:
 	CACHE_DICTION = {}
 
 
 # Define your function get_user_tweets here:
 
-def get_user_tweets(user):
+def get_user_tweets(user):			#input: a string with the user's screen name
 
-	if user in CACHE_DICTION:
+	if user in CACHE_DICTION:					#check if it's already in cache
 		results = CACHE_DICTION[user]
 	else:
 		results = api.user_timeline(user)
@@ -72,15 +72,14 @@ def get_user_tweets(user):
 		f.write(json.dumps(CACHE_DICTION))
 		f.close()
 
-	return results
+	return results					#output: string in json format of the tweets and their info
 
 
 
 # Write an invocation to the function for the "umich" user timeline and
 # save the result in a variable called umich_tweets:
 
-umich_tweets = get_user_tweets("@umich")
-
+umich_tweets = get_user_tweets("@umich")				#get the tweets from umich timeline
 
 ## Task 2 - Creating database and loading data into database
 ## You should load into the Users table:
@@ -90,23 +89,24 @@ umich_tweets = get_user_tweets("@umich")
 # mentioned in the umich timeline, that Twitter user's info should be
 # in the Users table, etc.
 
-conn = sqlite3.connect('206_APIsAndDBs.sqlite')
+conn = sqlite3.connect('206_APIsAndDBs.sqlite')			#create a database
 cur = conn.cursor()
 
-cur.execute('DROP TABLE IF EXISTS Tweets')
-cur.execute('DROP TABLE IF EXISTS Users')
+cur.execute('DROP TABLE IF EXISTS Tweets')				#if the table Tweets exists, clear the info and update it
+cur.execute('DROP TABLE IF EXISTS Users')				#if the table Users exists, clear the info and update it
 
 cur.execute('''
-CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_posted TEXT, time_posted DATETIME, retweets INTEGER)''')
+CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, tweet_text TEXT, user_posted TEXT, time_posted DATETIME,
+				retweets INTEGER, FOREIGN KEY (user_posted) REFERENCES Users(user_id))''')			#create Tweets table with proper headings
 
 cur.execute('''
 CREATE TABLE Users (user_id TEXT PRIMARY KEY, screen_name TEXT, num_favs INTEGER, description TEXT)''')
+																					#create Users table with proper headings
+umich_tweets = get_user_tweets("@umich")					#fetch tweets from umich timeline
 
-umich_tweets = get_user_tweets("@umich")
+users = ["UMich"]											#create a list of users, starting with umich
 
-users = ["UMich"]
-
-for tweet in umich_tweets:
+for tweet in umich_tweets:									#for each tweet on umich timeline
 	a = tweet["id"]
 	b = tweet["text"]
 	c = tweet["user"]["id_str"]
@@ -114,22 +114,19 @@ for tweet in umich_tweets:
 	e = tweet["retweet_count"]
 	for user in tweet["entities"]["user_mentions"]:
 		users.append(user["screen_name"])
-	# f = tweet["entities"]["user_mentions"]
-	# g = tweet["user"]["favourites_count"]
-	# h = tweet["user"]["description"]
 
 	cur.execute('''INSERT INTO Tweets (tweet_id, tweet_text, user_posted, time_posted, retweets)
-            VALUES (?, ?, ?, ?, ?)''', (a, b, c, d, e))
+            VALUES (?, ?, ?, ?, ?)''', (a, b, c, d, e))			#add the appropriate values into their correct columns in Tweets
 
-for user in users:
-	data = api.get_user(user)
+for user in users:									#for each user mentioned
+	data = api.get_user(user)						#retrieve all of their data
 	f = data["id_str"]
 	g = data["screen_name"]
 	h = data["favourites_count"]
 	j = data["description"]
 
 	cur.execute('''INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?, ?, ?, ?)''', (f, g, h, j))
-
+																#add the appropriate values into their correct columns in Users
 	conn.commit()
 
 
@@ -159,56 +156,58 @@ for user in users:
 # Save the list of tuples in a variable called users_info.
 
 users_info = []
-sqlstr = 'SELECT * FROM Users'
-for row in cur.execute(sqlstr):
-	(w, x, y, z) = (str(row[0]), str(row[1]), str(row[2]), str(row[3]))
-	users_info.append((w, x, y, z))
+sqlstr = 'SELECT * FROM Users'												#select all columns from Users
+for row in cur.execute(sqlstr):												#for each row:
+	(w, x, y, z) = (str(row[0]), str(row[1]), row[2], str(row[3]))			#create a tuple of the values in each column
+	users_info.append((w, x, y, z))											#add the tuple to the list
+
 
 # Make a query to select all of the user screen names from the database.
 # Save a resulting list of strings (NOT tuples, the strings inside them!)
 # in the variable screen_names. HINT: a list comprehension will make
 # this easier to complete!
 screen_names = []
-sqlstr = 'SELECT screen_name FROM Users'
-for row in cur.execute(sqlstr):
+sqlstr = 'SELECT screen_name FROM Users'									#select all screen names from Users
+for row in cur.execute(sqlstr):												#append each one to a list
 	screen_names.append(str(row))
-
 
 # Make a query to select all of the tweets (full rows of tweet information)
 # that have been retweeted more than 10 times. Save the result
 # (a list of tuples, or an empty list) in a variable called retweets.
 retweets = []
-sqlstr = 'SELECT * FROM Tweets WHERE retweets > 10'
-for row in cur.execute(sqlstr):
-	(v, w, x, y, z) = (str(row[0]), str(row[1]), str(row[2]), str(row[3]), str(row[4]))
-	retweets.append((v, w, x, y, z))
+sqlstr = 'SELECT * FROM Tweets WHERE retweets > 10'								#select all columns from Tweets if the tweet has more than 10 retweets
+for row in cur.execute(sqlstr):													#for each row:
+	(v, w, x, y, z) = (str(row[0]), str(row[1]), str(row[2]), row[3], row[4])	#create a tuple of the values in each column
+	retweets.append((v, w, x, y, z))											#add the tuple to the list
 
 # Make a query to select all the descriptions (descriptions only) of
 # the users who have favorited more than 500 tweets. Access all those
 # strings, and save them in a variable called favorites,
 # which should ultimately be a list of strings.
 favorites = []
-sqlstr = 'SELECT description FROM Users WHERE num_favs > 500'
-for row in cur.execute(sqlstr):
+sqlstr = 'SELECT description FROM Users WHERE num_favs > 500'					#select the description from Users if the User has favorited more than 500 tweets
+for row in cur.execute(sqlstr):													# add each description to a list
 	favorites.append(str(row))
-
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
-# tweet. Save the resulting list of tuples in a variable called joined_data2.
-joined_data = True
-# sqlstr = 'SELECT Users.screen_name, Tweets.tweet_text FROM Users JOIN Tweets ON Tweets.tweet_text = Users.screen_name'
-# for row in cur.execute(sqlstr):
-# 	(x, y) = (str(row[0], str(row[1])))
-# 	joined_data.append((x, y))
+# tweet. Save the resulting list of tuples in a variable called joined_data.
+joined_data = []
+sqlstr = 'SELECT Users.screen_name, Tweets.tweet_text FROM Tweets INNER JOIN Users ON Tweets.user_posted = Users.user_id' #select screen name from users and text from tweets where the user posted id matches the user id
+for row in cur.execute(sqlstr):
+	(x, y) = (str(row[0]), str(row[1]))						#create a tuple for each pair
+	joined_data.append((x, y))								#add tuple to a list
 
 # Make a query using an INNER JOIN to get a list of tuples with 2
 # elements in each tuple: the user screenname and the text of the
 # tweet in descending order based on retweets. Save the resulting
 # list of tuples in a variable called joined_data2.
 
-joined_data2 = True
-
+joined_data2 = []
+sqlstr = 'SELECT Users.screen_name, Tweets.tweet_text FROM Tweets INNER JOIN Users ON Tweets.user_posted = Users.user_id ORDER BY Tweets.retweets DESC' #same as above but order by retweets (descending)
+for row in cur.execute(sqlstr):
+	(x, y) = (str(row[0]), str(row[1]))
+	joined_data2.append((x, y))
 
 ### IMPORTANT: MAKE SURE TO CLOSE YOUR DATABASE CONNECTION AT THE END
 ### OF THE FILE HERE SO YOU DO NOT LOCK YOUR DATABASE (it's fixable,
